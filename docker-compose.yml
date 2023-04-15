@@ -1,0 +1,42 @@
+version: "3.9"
+
+services:
+  app:
+    container_name: wallet-api
+    image: golang:1.20.1-alpine3.17
+    build: ./
+    ports:
+      - "8080:8080"
+    environment:
+      MYSQL_HOST: db
+      MYSQL_USER: wallet
+      MYSQL_PASSWORD: walletsecret
+    networks:
+      quiz-network:
+    depends_on:
+      - db
+
+  db:
+    container_name: mysql-v8
+    image: mysql:8.0.26
+    command: --default-authentication-plugin=mysql_native_password
+    ports:
+      - '3306:3306'
+    expose:
+      - '3306'
+    volumes:
+      - wallet-data:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_USER: alex
+      MYSQL_PASSWORD: alexsecret
+      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+    networks:
+      quiz-network:
+
+
+networks:
+  wallet-network:
+
+volumes:
+  wallet-data:
