@@ -6,7 +6,7 @@ type LoginRequest struct {
 	Password string `json:"password"`
 }
 
-type Balance struct {
+type BalanceRequest struct {
 	UserId   int `json:"userId"`
 	WalletId int `json:"walletId"`
 }

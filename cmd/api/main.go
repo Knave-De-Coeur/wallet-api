@@ -85,6 +85,11 @@ func setUpRoutes(quizDBConn *gorm.DB, rc *redis.Client, logger *zap.Logger) (*gi
 		Hostname: config.WalletConfigs.Host,
 	})
 
+	walletService := services.NewWalletService(quizDBConn, rc, logger, services.WalletServiceSettings{
+		Port:     portNum,
+		Hostname: config.WalletConfigs.Host,
+	}, userService)
+
 	r := gin.New()
 
 	r.Use(gin.Logger())
@@ -97,6 +102,7 @@ func setUpRoutes(quizDBConn *gorm.DB, rc *redis.Client, logger *zap.Logger) (*gi
 	})
 
 	handlers.NewUserHandler(userService).UserRoutes(r.Group("/"))
+	handlers.NewWalletHandler(walletService).WalletRoutes(r.Group("/"))
 
 	return r, nil
 }

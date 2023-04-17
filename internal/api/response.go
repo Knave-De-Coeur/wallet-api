@@ -1,18 +1,25 @@
 package api
 
-type GeneratePasswordResponse struct {
-	FirstName string `json:"first_name"`
-	LastName  string `json:"last_name"`
-	Username  string `json:"username"`
-	Email     string `json:"email"`
-	Password  string `json:"password" validate:"required"`
-}
-
 // MessageResponse is a generic response struct that'll be marshalled to json and sent to the requester
 type MessageResponse struct {
 	Message string `json:"message"`
 	Result  any    `json:"result,omitempty"`
 	Error   string `json:"error,omitempty"`
+}
+
+type BalanceResponse struct {
+	User    User
+	Balance int64 `json:"balance"`
+}
+
+type CreditResponse struct {
+	User    User
+	Balance int64 `json:"balance"`
+}
+
+type DebitResponse struct {
+	User    User
+	Balance int64 `json:"balance"`
 }
 
 func GenerateMessageResponse(message string, res interface{}, err error) *MessageResponse {
