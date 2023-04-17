@@ -37,6 +37,15 @@ services:
     networks:
       wallet-network:
 
+  redis:
+    image: "redis:alpine"
+    ports:
+      - "6379:6379"
+    volumes:
+      - wallet-data:/data
+    networks:
+      - wallet-network
+
 
 networks:
   wallet-network:
