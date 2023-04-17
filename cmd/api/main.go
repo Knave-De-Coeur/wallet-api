@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"wallet-api/internal/config"
@@ -20,20 +21,15 @@ func main() {
 		log.Fatalf("somethign went wrong setting up logger for api: %+v", err)
 	}
 
-	defer func(logger *zap.Logger) {
-		_ = logger.Sync()
-		// if err != nil {
-		// 	fmt.Printf("something went wrong deferring the close to the logger: %v", err)
-		// }
-	}(logger)
+	defer logger.Sync()
 
 	logger.Info("🚀 connecting to db")
 
 	quizDBConn, err := utils.SetUpDBConnection(
-		config.CurrentConfigs.DBUser,
-		config.CurrentConfigs.DBPassword,
-		config.CurrentConfigs.Host,
-		config.CurrentConfigs.DBName,
+		config.WalletConfigs.DBUser,
+		config.WalletConfigs.DBPassword,
+		config.WalletConfigs.Host,
+		config.WalletConfigs.DBName,
 		logger,
 	)
 	if err != nil {
@@ -59,7 +55,13 @@ func main() {
 
 	logger.Info(fmt.Sprintf("✅ Applied migrations to %s db.", quizDBConn.Migrator().CurrentDatabase()))
 
-	routes, err := setUpRoutes(quizDBConn, logger)
+	redisClient := redis.NewClient(&redis.Options{
+		Addr:     config.WalletConfigs.RedisAddress,
+		Password: config.WalletConfigs.RedisPassword,
+		DB:       config.WalletConfigs.RedisDB,
+	})
+
+	routes, err := setUpRoutes(quizDBConn, redisClient, logger)
 	if err != nil {
 		logger.Fatal(err.Error())
 	}
@@ -70,17 +72,17 @@ func main() {
 }
 
 // setUpRoutes adds routes and returns gin engine
-func setUpRoutes(quizDBConn *gorm.DB, logger *zap.Logger) (*gin.Engine, error) {
+func setUpRoutes(quizDBConn *gorm.DB, rc *redis.Client, logger *zap.Logger) (*gin.Engine, error) {
 
-	portNum, err := strconv.Atoi(config.CurrentConfigs.Port)
+	portNum, err := strconv.Atoi(config.WalletConfigs.Port)
 	if err != nil {
 		logger.Error(fmt.Sprintf("port config not int %d", err))
 		return nil, err
 	}
 
-	userService := services.NewUserService(quizDBConn, logger, services.UserServiceSettings{
+	userService := services.NewUserService(quizDBConn, rc, logger, services.UserServiceSettings{
 		Port:     portNum,
-		Hostname: config.CurrentConfigs.Host,
+		Hostname: config.WalletConfigs.Host,
 	})
 
 	r := gin.New()

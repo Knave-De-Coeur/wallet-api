@@ -19,7 +19,7 @@ import (
 
 // GetDBConnectionString uses configs to generate a connection string to the db
 func GetDBConnectionString(user, pass, host, dbName string) string {
-	return fmt.Sprintf(config.CurrentConfigs.DBConnectionFormat, user, pass, host, dbName)
+	return fmt.Sprintf(config.WalletConfigs.DBConnectionFormat, user, pass, host, dbName)
 }
 
 // GetDBConnection uses string passed to connect to mysql database
@@ -55,12 +55,12 @@ func SetUpDBConnection(user, pass, host, dbName string, logger *zap.Logger) (*go
 	}
 
 	// SetMaxIdleConns sets the maximum number of connections in the idle connection pool.
-	sqlDB.SetMaxIdleConns(config.CurrentConfigs.MaxIdleConnections)
+	sqlDB.SetMaxIdleConns(config.WalletConfigs.MaxIdleConnections)
 
 	// SetMaxOpenConns sets the maximum number of open connections to the database.
-	sqlDB.SetMaxOpenConns(config.CurrentConfigs.MaxConnections)
+	sqlDB.SetMaxOpenConns(config.WalletConfigs.MaxConnections)
 
-	lifeTime, err := time.ParseDuration(fmt.Sprintf("%vh", config.CurrentConfigs.MaxLifetime))
+	lifeTime, err := time.ParseDuration(fmt.Sprintf("%vh", config.WalletConfigs.MaxLifetime))
 	if err != nil {
 		logger.Error("❌ something went wrong formatting the lifetime duration from the configurations", zap.String("method", "SetUpDBConnection"), zap.Error(err))
 		return nil, err

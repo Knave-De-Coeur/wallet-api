@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"wallet-api/internal/api"
@@ -13,9 +14,10 @@ import (
 )
 
 type UserService struct {
-	DBConn   *gorm.DB
-	logger   *zap.Logger
-	settings UserServiceSettings
+	DBConn      *gorm.DB
+	RedisClient *redis.Client
+	logger      *zap.Logger
+	settings    UserServiceSettings
 }
 
 // UserServiceSettings used to affect code flow
@@ -32,11 +34,12 @@ type UserServices interface {
 	Login(request api.LoginRequest) (*api.User, error)
 }
 
-func NewUserService(dbConn *gorm.DB, logger *zap.Logger, settings UserServiceSettings) *UserService {
+func NewUserService(dbConn *gorm.DB, rc *redis.Client, logger *zap.Logger, settings UserServiceSettings) *UserService {
 	return &UserService{
-		DBConn:   dbConn,
-		logger:   logger,
-		settings: settings,
+		DBConn:      dbConn,
+		RedisClient: rc,
+		logger:      logger,
+		settings:    settings,
 	}
 }
 

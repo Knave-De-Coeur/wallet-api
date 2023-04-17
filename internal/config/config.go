@@ -16,6 +16,9 @@ func fallbackConfigs() {
 	viper.SetDefault("MAX_CONNECTIONS", 100)
 	viper.SetDefault("MAX_IDLE_CONNECTIONS", 10)
 	viper.SetDefault("MAX_LIFETIME", 1)
+	viper.SetDefault("REDIS_ADDRESS", "localhost:6379")
+	viper.SetDefault("REDIS_PASSWORD", "")
+	viper.SetDefault("REDIS_DB", 0)
 }
 
 // Configurations app configs from env file, env params or fallback configs
@@ -29,16 +32,19 @@ type Configurations struct {
 	MaxConnections     int    `mapstructure:"MAX_CONNECTIONS"`
 	MaxIdleConnections int    `mapstructure:"MAX_IDLE_CONNECTIONS"`
 	MaxLifetime        int    `mapstructure:"MAX_LIFETIME"`
+	RedisAddress       string `mapstructure:"REDIS_ADDRESS"`
+	RedisPassword      string `mapstructure:"REDIS_Password"`
+	RedisDB            int    `mapstructure:"REDIS_DB"`
 }
 
-var CurrentConfigs Configurations
+var WalletConfigs Configurations
 
 // initConfig reads in config file and ENV variables if set.
 func init() {
 
 	var err error
 
-	CurrentConfigs, err = LoadConfig("./")
+	WalletConfigs, err = LoadConfig("./")
 	if err != nil {
 		log.Fatalf("something went wrong setting up configs: %+v", err)
 	}
