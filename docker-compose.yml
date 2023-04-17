@@ -11,13 +11,15 @@ services:
       MYSQL_HOST: db
       MYSQL_USER: wallet
       MYSQL_PASSWORD: walletsecret
+    volumes:
+      - .:/go/src/github.com/knave-de-coeur/wallet-api
     networks:
-      quiz-network:
+      wallet-network:
     depends_on:
       - db
 
   db:
-    container_name: mysql-v8
+    container_name: mysql-v8-wallet
     image: mysql:8.0.26
     command: --default-authentication-plugin=mysql_native_password
     ports:
@@ -32,7 +34,7 @@ services:
       MYSQL_PASSWORD: alexsecret
       MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
     networks:
-      quiz-network:
+      wallet-network:
 
 
 networks:

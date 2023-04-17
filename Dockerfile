@@ -1,21 +1,8 @@
-# syntax=docker/dockerfile:1
+FROM golang:1.20.3-alpine3.17 AS build-env
 
-##
-## Build
-##
-FROM golang:1.17.5-alpine3.15 AS build-env
+COPY . .
 
-COPY ./ /go/src/github.com/knave-de-coeur/multiple-choice-quize-api-service/
-
-WORKDIR /go/src/github.com/knave-de-coeur/multiple-choice-quize-api-service/
+WORKDIR /go/src/github.com/knave-de-coeur/wallet-api
 
 # Download necessary Go modules
-RUN go mod download
-
-ENV GO111MODULE=on
-
-RUN go build -o /go/bin/ /go/src/github.com/knave-de-coeur/multiple-choice-quize-api-service/cmd/api
-
-EXPOSE 9990
-
-ENTRYPOINT ["/go/bin/api"]
+RUN go mod tidy
