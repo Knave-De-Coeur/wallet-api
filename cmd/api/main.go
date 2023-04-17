@@ -9,6 +9,8 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"wallet-api/internal/config"
+	"wallet-api/internal/handlers"
+	"wallet-api/internal/services"
 	"wallet-api/internal/utils"
 )
 
@@ -70,16 +72,16 @@ func main() {
 // setUpRoutes adds routes and returns gin engine
 func setUpRoutes(quizDBConn *gorm.DB, logger *zap.Logger) (*gin.Engine, error) {
 
-	_, err := strconv.Atoi(config.CurrentConfigs.Port)
+	portNum, err := strconv.Atoi(config.CurrentConfigs.Port)
 	if err != nil {
 		logger.Error(fmt.Sprintf("port config not int %d", err))
 		return nil, err
 	}
 
-	// userService := services.NewUserService(quizDBConn, nc, logger, services.UserServiceSettings{
-	// 	Port:     portNum,
-	// 	Hostname: config.CurrentConfigs.Host,
-	// })
+	userService := services.NewUserService(quizDBConn, logger, services.UserServiceSettings{
+		Port:     portNum,
+		Hostname: config.CurrentConfigs.Host,
+	})
 
 	r := gin.New()
 
@@ -92,7 +94,7 @@ func setUpRoutes(quizDBConn *gorm.DB, logger *zap.Logger) (*gin.Engine, error) {
 		})
 	})
 
-	// handlers.NewUserHandler(userService, nc).UserRoutes(r.Group("/"))
+	handlers.NewUserHandler(userService).UserRoutes(r.Group("/"))
 
 	return r, nil
 }
