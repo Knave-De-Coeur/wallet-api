@@ -30,6 +30,7 @@ services:
       - wallet-data:/var/lib/mysql
     environment:
       MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: wallet
       MYSQL_USER: alex
       MYSQL_PASSWORD: alexsecret
       MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
