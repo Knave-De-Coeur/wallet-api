@@ -1,5 +1,9 @@
 package api
 
+import (
+	"github.com/shopspring/decimal"
+)
+
 // MessageResponse is a generic response struct that'll be marshalled to json and sent to the requester
 type MessageResponse struct {
 	Message string `json:"message"`
@@ -12,18 +16,21 @@ type LoginResponse struct {
 }
 
 type BalanceResponse struct {
-	User    User
-	Balance int64 `json:"balance"`
+	UserID   int             `json:"user_ID"`
+	WalletID int             `json:"wallet_ID"`
+	Balance  decimal.Decimal `json:"balance"`
 }
 
 type CreditResponse struct {
-	User    User
-	Balance int64 `json:"balance"`
+	UserID   int             `json:"user_ID"`
+	WalletID int             `json:"wallet_ID"`
+	Balance  decimal.Decimal `json:"balance"`
 }
 
 type DebitResponse struct {
-	User    User
-	Balance int64 `json:"balance"`
+	UserID   int             `json:"user_ID"`
+	WalletID int             `json:"wallet_ID"`
+	Balance  decimal.Decimal `json:"balance"`
 }
 
 func GenerateMessageResponse(message string, res interface{}, err error) *MessageResponse {

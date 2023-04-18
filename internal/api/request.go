@@ -1,5 +1,9 @@
 package api
 
+import (
+	"github.com/shopspring/decimal"
+)
+
 // LoginRequest is the parsed struct of the /login endpoint
 type LoginRequest struct {
 	Username string `json:"username"`
@@ -7,18 +11,18 @@ type LoginRequest struct {
 }
 
 type BalanceRequest struct {
-	UserId   int `json:"userId"`
-	WalletId int `json:"walletId"`
+	UserId   int `json:"user_id"`
+	WalletId int `json:"wallet_id"`
 }
 
 type CreditRequest struct {
-	UserId   int `json:"userId"`
-	WalletId int `json:"walletId"`
-	Amount   int `json:"amount"`
+	UserId   int             `json:"user_id"`
+	WalletId int             `json:"wallet_id"`
+	Amount   decimal.Decimal `json:"amount"`
 }
 
 type DebitRequest struct {
-	UserId   int `json:"userId"`
-	WalletId int `json:"walletId"`
-	Amount   int `json:"amount"`
+	UserId   int             `json:"user_id"`
+	WalletId int             `json:"wallet_id"`
+	Amount   decimal.Decimal `json:"amount"`
 }

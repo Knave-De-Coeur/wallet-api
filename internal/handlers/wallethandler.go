@@ -83,6 +83,11 @@ func (handler *WalletHandler) creditWallet(c *gin.Context) {
 		return
 	}
 
+	creditRequest.WalletId, _ = strconv.Atoi(walletID)
+	uid, _ := c.Get("user_id")
+
+	creditRequest.UserId = uid.(int)
+
 	user, err := handler.WalletService.Credit(&creditRequest)
 	if err != nil && err == gorm.ErrRecordNotFound {
 		c.AbortWithStatusJSON(http.StatusNotFound, api.GenerateMessageResponse("failed to credit wallet", nil, err))

@@ -21,3 +21,4 @@ POST / api/v1/wallets/{wallet_id}/debit
 This is taking the assumption that a user can have many wallets but only one wallet can belong to a user at any given point.
 
 - run `docker-compose up -d` to set up redis and mysql
+- wallet balances (funds) are saved as whole numbers then divised by 100 to get the cents.
