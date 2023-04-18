@@ -7,6 +7,10 @@ type MessageResponse struct {
 	Error   string `json:"error,omitempty"`
 }
 
+type LoginResponse struct {
+	Token string `json:"token"`
+}
+
 type BalanceResponse struct {
 	User    User
 	Balance int64 `json:"balance"`

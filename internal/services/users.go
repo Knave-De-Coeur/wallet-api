@@ -3,9 +3,9 @@ package services
 import (
 	"errors"
 	"fmt"
-	"strconv"
 	"time"
 
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
@@ -22,8 +22,9 @@ type UserService struct {
 
 // UserServiceSettings used to affect code flow
 type UserServiceSettings struct {
-	Port     int
-	Hostname string
+	Port      int
+	Hostname  string
+	JWTSecret string
 }
 
 type UserServices interface {
@@ -31,7 +32,7 @@ type UserServices interface {
 	GetUsers() ([]api.User, error)
 	GetUserByUsername(username string) (*pkg.User, error)
 	GetUserByID(uID uint) (*api.User, error)
-	Login(request api.LoginRequest) (*api.User, error)
+	Login(request api.LoginRequest) (*api.LoginResponse, error)
 }
 
 func NewUserService(dbConn *gorm.DB, rc *redis.Client, logger *zap.Logger, settings UserServiceSettings) *UserService {
@@ -142,7 +143,7 @@ func (service *UserService) GetUserByID(uID uint) (*api.User, error) {
 }
 
 // Login is a wrapper for the GetUserByUsername that also validates the password
-func (service *UserService) Login(request api.LoginRequest) (*api.User, error) {
+func (service *UserService) Login(request api.LoginRequest) (*api.LoginResponse, error) {
 
 	user, err := service.GetUserByUsername(request.Username)
 	if err != nil {
@@ -151,6 +152,20 @@ func (service *UserService) Login(request api.LoginRequest) (*api.User, error) {
 
 	if user.Password != request.Password {
 		return nil, fmt.Errorf("invalid passord for user")
+	}
+
+	// Create a new token object, specifying signing method and the claims
+	// you would like it to contain.
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"sub": user.ID,
+		"exp": time.Now().Add(time.Hour).Unix(),
+	})
+
+	// Sign and get the complete encoded token as a string using the secret
+	tokenString, err := token.SignedString([]byte(service.settings.JWTSecret))
+	if err != nil {
+		service.logger.Error("failed to create token", zap.Error(err))
+		return nil, err
 	}
 
 	unixCT := service.DBConn.NowFunc()
@@ -167,17 +182,5 @@ func (service *UserService) Login(request api.LoginRequest) (*api.User, error) {
 		return nil, res.Error
 	}
 
-	// TODO: generate jwt
-
-	return &api.User{
-		ID:                 strconv.Itoa(int(user.ID)),
-		FirstName:          user.FirstName,
-		LastName:           user.LastName,
-		Email:              user.Email,
-		Username:           user.Username,
-		Age:                user.Age,
-		CreatedAT:          user.CreatedAt.Format(time.RFC3339),
-		UpdatedAT:          user.UpdatedAt.Format(time.RFC3339),
-		LastLoginTimeStamp: user.LastLoginTimeStamp.Time.Format(time.RFC3339),
-	}, nil
+	return &api.LoginResponse{Token: tokenString}, nil
 }

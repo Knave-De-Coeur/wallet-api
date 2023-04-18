@@ -9,25 +9,28 @@ import (
 	"github.com/go-playground/validator/v10"
 	"gorm.io/gorm"
 	"wallet-api/internal/api"
+	"wallet-api/internal/middleware"
 	"wallet-api/internal/services"
 )
 
 type WalletHandler struct {
 	WalletService services.WalletServices
 	Validator     *validator.Validate
+	JwtSecret     string
 }
 
-func NewWalletHandler(service *services.WalletService) *WalletHandler {
+func NewWalletHandler(service *services.WalletService, jwtSecret string) *WalletHandler {
 	return &WalletHandler{
 		WalletService: service,
 		Validator:     validator.New(),
+		JwtSecret:     jwtSecret,
 	}
 }
 
 // WalletRoutes sets up user routes with accompanying methods for processing
 func (handler *WalletHandler) WalletRoutes(r *gin.RouterGroup) {
 
-	r.Group("wallet").
+	r.Group("wallet", middleware.RequireAuth(handler.JwtSecret)).
 		// GET("", handler.getUserWallets).
 		// POST("new", handler.newWallet).
 		GET(":walletid/balance", handler.getWalletBalance).
@@ -38,6 +41,11 @@ func (handler *WalletHandler) WalletRoutes(r *gin.RouterGroup) {
 }
 
 func (handler *WalletHandler) getWalletBalance(c *gin.Context) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.AbortWithStatusJSON(http.StatusBadRequest, api.GenerateMessageResponse("no user id", nil, fmt.Errorf("no user id saved from token")))
+		return
+	}
 
 	walletID := c.Param("walletid")
 	if walletID == "" {
@@ -51,8 +59,7 @@ func (handler *WalletHandler) getWalletBalance(c *gin.Context) {
 		return
 	}
 
-	// todo get user id from redis token
-	user, err := handler.WalletService.Balance(1, wID)
+	user, err := handler.WalletService.Balance(userID.(int), wID)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, api.GenerateMessageResponse("failed to get user by walletID", nil, err))
 		return

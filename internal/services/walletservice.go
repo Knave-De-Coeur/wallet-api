@@ -38,6 +38,7 @@ func NewWalletService(dbConn *gorm.DB, rc *redis.Client, logger *zap.Logger, set
 }
 
 func (w *WalletService) Balance(userID, walletID int) (*api.BalanceResponse, error) {
+	// fmt.Printf("user id: %d and wallet id: %d \n", userID, walletID)
 	return nil, nil
 }
 

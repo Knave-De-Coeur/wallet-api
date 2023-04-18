@@ -81,8 +81,9 @@ func setUpRoutes(quizDBConn *gorm.DB, rc *redis.Client, logger *zap.Logger) (*gi
 	}
 
 	userService := services.NewUserService(quizDBConn, rc, logger, services.UserServiceSettings{
-		Port:     portNum,
-		Hostname: config.WalletConfigs.Host,
+		Port:      portNum,
+		Hostname:  config.WalletConfigs.Host,
+		JWTSecret: config.WalletConfigs.JWTSecret,
 	})
 
 	walletService := services.NewWalletService(quizDBConn, rc, logger, services.WalletServiceSettings{
@@ -102,7 +103,7 @@ func setUpRoutes(quizDBConn *gorm.DB, rc *redis.Client, logger *zap.Logger) (*gi
 	})
 
 	handlers.NewUserHandler(userService).UserRoutes(r.Group("/"))
-	handlers.NewWalletHandler(walletService).WalletRoutes(r.Group("/"))
+	handlers.NewWalletHandler(walletService, config.WalletConfigs.JWTSecret).WalletRoutes(r.Group("/"))
 
 	return r, nil
 }
