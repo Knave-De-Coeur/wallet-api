@@ -22,3 +22,5 @@ This is taking the assumption that a user can have many wallets but only one wal
 
 - run `docker-compose up -d` to set up redis and mysql
 - wallet balances (funds) are saved as whole numbers then divised by 100 to get the cents.
+- opted to not stop flow when errors in cache crop up
+- opted to not add transaction, bet, win tables to avoid complexity

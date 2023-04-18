@@ -87,8 +87,9 @@ func setUpRoutes(quizDBConn *gorm.DB, rc *redis.Client, logger *zap.Logger) (*gi
 	})
 
 	walletService := services.NewWalletService(quizDBConn, rc, logger, services.WalletServiceSettings{
-		Port:     portNum,
-		Hostname: config.WalletConfigs.Host,
+		Port:              portNum,
+		Hostname:          config.WalletConfigs.Host,
+		RedisCacheTimeout: config.WalletConfigs.RedisExpiry,
 	}, userService)
 
 	r := gin.New()

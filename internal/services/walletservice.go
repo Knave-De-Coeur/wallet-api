@@ -1,8 +1,11 @@
 package services
 
 import (
+	"context"
 	"errors"
+	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/redis/go-redis/v9"
 	"github.com/shopspring/decimal"
@@ -14,7 +17,7 @@ import (
 
 type WalletService struct {
 	DBConn      *gorm.DB
-	RedisClient *redis.Client
+	Cache       *redis.Client
 	logger      *zap.Logger
 	settings    WalletServiceSettings
 	UserService *UserService
@@ -22,8 +25,9 @@ type WalletService struct {
 
 // WalletServiceSettings used to affect code flow
 type WalletServiceSettings struct {
-	Port     int
-	Hostname string
+	Port              int
+	Hostname          string
+	RedisCacheTimeout int
 }
 
 type WalletServices interface {
@@ -39,7 +43,7 @@ type WalletServices interface {
 func NewWalletService(dbConn *gorm.DB, rc *redis.Client, logger *zap.Logger, settings WalletServiceSettings, userService *UserService) *WalletService {
 	return &WalletService{
 		DBConn:      dbConn,
-		RedisClient: rc,
+		Cache:       rc,
 		logger:      logger,
 		settings:    settings,
 		UserService: userService,
@@ -48,12 +52,52 @@ func NewWalletService(dbConn *gorm.DB, rc *redis.Client, logger *zap.Logger, set
 
 func (w *WalletService) Balance(userID, walletID int) (*api.BalanceResponse, error) {
 
+	walletBalance, err := w.Cache.Get(context.TODO(), fmt.Sprintf("%d-balance", userID)).Result()
+	if err != nil && err != redis.Nil {
+		w.logger.Error(
+			"something went wrong getting the wallet from cache",
+			zap.Error(err),
+			zap.Int64("user_id", int64(userID)),
+			zap.Int64("wallet_id", int64(walletID)),
+		)
+		return nil, err
+	}
+
+	if walletBalance != "" {
+		wBalance, err := decimal.NewFromString(walletBalance)
+		if err != nil {
+			w.logger.Error(
+				"something parsing the wallet balance",
+				zap.Error(err),
+				zap.Int64("user_id", int64(userID)),
+				zap.Int64("wallet_id", int64(walletID)),
+			)
+			return nil, err
+		}
+		return &api.BalanceResponse{
+			UserID:   userID,
+			WalletID: walletID,
+			Balance:  wBalance.Div(decimal.NewFromInt(100)),
+		}, nil
+	}
+
 	wallet, err := w.getUserWalletByID(userID, walletID)
 	if err != nil {
 		return nil, err
 	}
 
 	w.logger.Debug("wallet grabbed", zap.Any("wallet", wallet))
+
+	// TODO: expiration from config
+	err = w.Cache.Set(context.TODO(), fmt.Sprintf("%d-balance", userID), wallet.Funds, time.Duration(w.settings.RedisCacheTimeout*int(time.Minute))).Err()
+	if err != nil {
+		w.logger.Error(
+			"something went wrong saving the balance in cache",
+			zap.Error(err),
+			zap.Any("wallet-balance", wallet.Funds),
+		)
+		return nil, err
+	}
 
 	return &api.BalanceResponse{
 		UserID:   userID,
@@ -120,6 +164,17 @@ func (w *WalletService) Credit(creditReq *api.CreditRequest) (*api.CreditRespons
 		return nil, err
 	}
 
+	// TODO: transaction?
+	err = w.Cache.Set(context.TODO(), fmt.Sprintf("%d-balance", creditReq.UserId), newBalance.String(), time.Duration(w.settings.RedisCacheTimeout*int(time.Minute))).Err()
+	if err != nil {
+		_ = w.Cache.Del(context.TODO(), fmt.Sprintf("%d-balance", creditReq.UserId))
+		w.logger.Error(
+			"something went wrong updating the cached data, deleting",
+			zap.Error(err),
+			zap.Any("wallet", wallet),
+		)
+	}
+
 	return &api.CreditResponse{
 		UserID:   creditReq.UserId,
 		WalletID: creditReq.WalletId,
@@ -151,6 +206,17 @@ func (w *WalletService) Debit(debitReq *api.DebitRequest) (*api.DebitResponse, e
 
 	if err = w.updateUserWalletByID(wallet); err != nil {
 		return nil, err
+	}
+
+	// TODO: transaction?
+	err = w.Cache.Set(context.TODO(), fmt.Sprintf("%d-balance", debitReq.UserId), newBalance.String(), time.Duration(w.settings.RedisCacheTimeout*int(time.Minute))).Err()
+	if err != nil {
+		_ = w.Cache.Del(context.TODO(), fmt.Sprintf("%d-balance", debitReq.UserId))
+		w.logger.Error(
+			"something went wrong updating the cached data, deleting",
+			zap.Error(err),
+			zap.Any("wallet", wallet),
+		)
 	}
 
 	return &api.DebitResponse{

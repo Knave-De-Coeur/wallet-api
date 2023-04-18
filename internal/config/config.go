@@ -19,6 +19,7 @@ func fallbackConfigs() {
 	viper.SetDefault("REDIS_ADDRESS", "localhost:6379")
 	viper.SetDefault("REDIS_PASSWORD", "")
 	viper.SetDefault("REDIS_DB", 0)
+	viper.SetDefault("REDIS_EXPIRY", 60)
 	viper.SetDefault("JWT_SECRET", "")
 }
 
@@ -36,6 +37,7 @@ type Configurations struct {
 	RedisAddress       string `mapstructure:"REDIS_ADDRESS"`
 	RedisPassword      string `mapstructure:"REDIS_PASSWORD"`
 	RedisDB            int    `mapstructure:"REDIS_DB"`
+	RedisExpiry        int    `mapstructure:"REDIS_EXPIRY"`
 	JWTSecret          string `mapstructure:"JWT_SECRET"`
 }
 
