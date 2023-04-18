@@ -114,6 +114,10 @@ func (handler *WalletHandler) debitWallet(c *gin.Context) {
 		return
 	}
 
+	debitRequest.WalletId, _ = strconv.Atoi(walletID)
+	uid, _ := c.Get("user_id")
+
+	debitRequest.UserId = uid.(int)
 	user, err := handler.WalletService.Debit(&debitRequest)
 	if err != nil && err == gorm.ErrRecordNotFound {
 		c.AbortWithStatusJSON(http.StatusNotFound, api.GenerateMessageResponse("failed to debit wallet", nil, err))

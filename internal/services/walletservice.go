@@ -1,6 +1,7 @@
 package services
 
 import (
+	"errors"
 	"strconv"
 
 	"github.com/redis/go-redis/v9"
@@ -97,6 +98,11 @@ func (w *WalletService) updateUserWalletByID(wallet *pkg.Wallet) error {
 }
 
 func (w *WalletService) Credit(creditReq *api.CreditRequest) (*api.CreditResponse, error) {
+
+	if creditReq.Amount.IsNegative() {
+		return nil, errors.New("amount cannot be negative")
+	}
+
 	wallet, err := w.getUserWalletByID(creditReq.UserId, creditReq.WalletId)
 	if err != nil {
 		return nil, err
@@ -122,5 +128,34 @@ func (w *WalletService) Credit(creditReq *api.CreditRequest) (*api.CreditRespons
 }
 
 func (w *WalletService) Debit(debitReq *api.DebitRequest) (*api.DebitResponse, error) {
-	return nil, nil
+	if debitReq.Amount.IsNegative() {
+		return nil, errors.New("amount cannot be negative")
+	}
+
+	wallet, err := w.getUserWalletByID(debitReq.UserId, debitReq.WalletId)
+	if err != nil {
+		return nil, err
+	}
+
+	amountToAdd := debitReq.Amount.Mul(decimal.NewFromFloat(100))
+
+	walletFunds := decimal.NewFromInt(int64(wallet.Funds)) // should already be in 100s
+
+	newBalance := walletFunds.Sub(amountToAdd)
+
+	if newBalance.IsNegative() {
+		return nil, errors.New("not enough balance")
+	}
+
+	wallet.Funds, _ = strconv.Atoi(newBalance.String())
+
+	if err = w.updateUserWalletByID(wallet); err != nil {
+		return nil, err
+	}
+
+	return &api.DebitResponse{
+		UserID:   debitReq.UserId,
+		WalletID: debitReq.WalletId,
+		Balance:  newBalance.Div(decimal.NewFromFloat(100)),
+	}, nil
 }
