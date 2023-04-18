@@ -44,7 +44,7 @@ func TestMain(m *testing.M) {
 
 	defer log.Sync()
 
-	mockDB, sqlMock, err = sqlmock.New()
+	mockDB, sqlMock, err = sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
 	if err != nil {
 		panic(fmt.Sprintf("an error '%s' was not expected when opening a stub database connection", err))
 	}
@@ -57,7 +57,7 @@ func TestMain(m *testing.M) {
 		SkipInitializeWithVersion: true,
 	})
 
-	gormDB, err := gorm.Open(dialector, &gorm.Config{
+	gormDB, err = gorm.Open(dialector, &gorm.Config{
 		NowFunc: func() time.Time {
 			return time.Unix(time.Now().Unix(), 0).UTC()
 		},

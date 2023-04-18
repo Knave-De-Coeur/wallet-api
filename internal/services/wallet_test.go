@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"regexp"
 	"testing"
+	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/magiconair/properties/assert"
@@ -36,21 +37,24 @@ func TestBalance(t *testing.T) {
 
 	for _, test := range testCases {
 		t.Run(test.Name, func(t *testing.T) {
+			key := fmt.Sprintf("%d-balance", test.Input.UserId)
+			redisClientMock.ExpectGet(key).RedisNil()
+			redisClientMock.Regexp().ExpectSet(key, `^[0-9]`, 60*time.Minute).SetVal("ok")
+
 			redisClientMock.ExpectGet(fmt.Sprintf("%d-balance", test.Input.WalletId)).RedisNil()
-			sqlMock.ExpectQuery(regexp.QuoteMeta(
-				`SELECT id, user_id, name, funds FROM "wallets" 
-                                WHERE id = ? AND user_id = ?
-                                ORDER BY id
-                                LIMIT 1`)).
+			sqlMock.ExpectQuery(regexp.QuoteMeta("SELECT `id`,`user_id`,`name`,`funds` FROM `wallets` WHERE `id` = ? AND `user_id` = ? ORDER BY `wallets`.`id` LIMIT 1")).
 				WithArgs(test.Input.WalletId, test.Input.UserId).
 				WillReturnRows(sqlmock.NewRows([]string{"id", "user_id", "name", "funds"}).
-					AddRow(test.Input.WalletId, test.Input.UserId, "Wallet 1", 100))
+					AddRow(test.Input.WalletId, test.Input.UserId, "Wallet 1", 10000))
+
 			res, err := walletService.Balance(test.Input.UserId, test.Input.WalletId)
 			if test.ExpectedErr {
 				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
 			}
 
-			assert.Equal(t, test.ExpectedResult, res)
+			assert.Equal(t, res.Balance.String(), test.ExpectedResult.Balance.String())
 		})
 	}
 }

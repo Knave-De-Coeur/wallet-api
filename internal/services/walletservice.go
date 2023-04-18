@@ -88,7 +88,6 @@ func (w *WalletService) Balance(userID, walletID int) (*api.BalanceResponse, err
 
 	w.logger.Debug("wallet grabbed", zap.Any("wallet", wallet))
 
-	// TODO: expiration from config
 	err = w.Cache.Set(context.TODO(), fmt.Sprintf("%d-balance", userID), wallet.Funds, time.Duration(w.settings.RedisCacheTimeout*int(time.Minute))).Err()
 	if err != nil {
 		w.logger.Error(
