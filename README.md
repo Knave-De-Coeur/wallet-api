@@ -22,7 +22,11 @@ POST / api/v1/wallets/{wallet_id}/debit
 - cd `$GOPATH/src/wallet-api` (or wherever the repo was cloned)
 - run `docker-compose up -d` to set up redis and mysql
 - run `go mod tidy`
-- To get the binary file `go build -o $GOPATH/bin/wallet-api`
+- Run To get the binary file `go build -o $GOPATH/src/github.com/knave-de-coeur/wallet-api/bin/wallet_api $GOPATH/src/github.
+com/knave-de-coeur/wallet-api/cmd/api/main.go`
+- Run `cp -R ./internal/migrations/ ./bin/migrations`
+- Run `./bin/wallet-api`
+- Api should be up and running with dummy data inserted.
 - To run tests, with logger:
 ```
 cd wallet-api/internal/services
