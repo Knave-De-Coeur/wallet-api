@@ -13,6 +13,7 @@ import (
 	"gorm.io/gorm"
 	"wallet-api/internal/api"
 	"wallet-api/internal/pkg"
+	"wallet-api/internal/utils"
 )
 
 type WalletService struct {
@@ -52,7 +53,8 @@ func NewWalletService(dbConn *gorm.DB, rc *redis.Client, logger *zap.Logger, set
 
 func (w *WalletService) Balance(userID, walletID int) (*api.BalanceResponse, error) {
 
-	walletBalance, err := w.Cache.Get(context.TODO(), fmt.Sprintf("%d-balance", userID)).Result()
+	redisKey := utils.GenerateRedisKey(walletID)
+	walletBalance, err := w.Cache.Get(context.TODO(), redisKey).Result()
 	if err != nil && err != redis.Nil {
 		w.logger.Error(
 			"something went wrong getting the wallet from cache",
@@ -88,7 +90,7 @@ func (w *WalletService) Balance(userID, walletID int) (*api.BalanceResponse, err
 
 	w.logger.Debug("wallet grabbed", zap.Any("wallet", wallet))
 
-	err = w.Cache.Set(context.TODO(), fmt.Sprintf("%d-balance", userID), wallet.Funds, time.Duration(w.settings.RedisCacheTimeout*int(time.Minute))).Err()
+	err = w.Cache.Set(context.TODO(), redisKey, wallet.Funds, time.Duration(w.settings.RedisCacheTimeout*int(time.Minute))).Err()
 	if err != nil {
 		w.logger.Error(
 			"something went wrong saving the balance in cache",
@@ -127,7 +129,7 @@ func (w *WalletService) getUserWalletByID(userID, walletID int) (*pkg.Wallet, er
 
 func (w *WalletService) updateUserWalletByID(wallet *pkg.Wallet) error {
 	// Get all records
-	res := w.DBConn.Save(wallet)
+	res := w.DBConn.Model(&wallet).Update("funds", wallet.Funds)
 	if res.Error != nil {
 		w.logger.Error(
 			"something went wrong updating the wallet",
@@ -142,8 +144,14 @@ func (w *WalletService) updateUserWalletByID(wallet *pkg.Wallet) error {
 
 func (w *WalletService) Credit(creditReq *api.CreditRequest) (*api.CreditResponse, error) {
 
-	if creditReq.Amount.IsNegative() {
-		return nil, errors.New("amount cannot be negative")
+	if creditReq.Amount.IsNegative() || creditReq.Amount.IsZero() {
+		err := errors.New(pkg.WRONG_AMOUNT)
+		w.logger.Error(
+			"attempted to credit invalid amount",
+			zap.Error(err),
+			zap.Any("creditReq", creditReq),
+		)
+		return nil, err
 	}
 
 	wallet, err := w.getUserWalletByID(creditReq.UserId, creditReq.WalletId)
@@ -163,10 +171,9 @@ func (w *WalletService) Credit(creditReq *api.CreditRequest) (*api.CreditRespons
 		return nil, err
 	}
 
-	// TODO: transaction?
-	err = w.Cache.Set(context.TODO(), fmt.Sprintf("%d-balance", creditReq.UserId), newBalance.String(), time.Duration(w.settings.RedisCacheTimeout*int(time.Minute))).Err()
+	err = w.Cache.Set(context.TODO(), utils.GenerateRedisKey(creditReq.WalletId), newBalance.String(), time.Duration(w.settings.RedisCacheTimeout*int(time.Minute))).Err()
 	if err != nil {
-		_ = w.Cache.Del(context.TODO(), fmt.Sprintf("%d-balance", creditReq.UserId))
+		_ = w.Cache.Del(context.TODO(), utils.GenerateRedisKey(creditReq.WalletId))
 		w.logger.Error(
 			"something went wrong updating the cached data, deleting",
 			zap.Error(err),
@@ -182,8 +189,14 @@ func (w *WalletService) Credit(creditReq *api.CreditRequest) (*api.CreditRespons
 }
 
 func (w *WalletService) Debit(debitReq *api.DebitRequest) (*api.DebitResponse, error) {
-	if debitReq.Amount.IsNegative() {
-		return nil, errors.New("amount cannot be negative")
+	if debitReq.Amount.IsNegative() || debitReq.Amount.IsZero() {
+		err := errors.New(pkg.WRONG_AMOUNT)
+		w.logger.Error(
+			"attempted to debit invalid amount",
+			zap.Error(err),
+			zap.Any("creditReq", debitReq),
+		)
+		return nil, err
 	}
 
 	wallet, err := w.getUserWalletByID(debitReq.UserId, debitReq.WalletId)
@@ -207,7 +220,6 @@ func (w *WalletService) Debit(debitReq *api.DebitRequest) (*api.DebitResponse, e
 		return nil, err
 	}
 
-	// TODO: transaction?
 	err = w.Cache.Set(context.TODO(), fmt.Sprintf("%d-balance", debitReq.UserId), newBalance.String(), time.Duration(w.settings.RedisCacheTimeout*int(time.Minute))).Err()
 	if err != nil {
 		_ = w.Cache.Del(context.TODO(), fmt.Sprintf("%d-balance", debitReq.UserId))

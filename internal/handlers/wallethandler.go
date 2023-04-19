@@ -10,6 +10,7 @@ import (
 	"gorm.io/gorm"
 	"wallet-api/internal/api"
 	"wallet-api/internal/middleware"
+	"wallet-api/internal/pkg"
 	"wallet-api/internal/services"
 )
 
@@ -91,6 +92,9 @@ func (handler *WalletHandler) creditWallet(c *gin.Context) {
 	user, err := handler.WalletService.Credit(&creditRequest)
 	if err != nil && err == gorm.ErrRecordNotFound {
 		c.AbortWithStatusJSON(http.StatusNotFound, api.GenerateMessageResponse("failed to credit wallet", nil, err))
+		return
+	} else if err.Error() == pkg.WRONG_AMOUNT {
+		c.AbortWithStatusJSON(http.StatusBadRequest, api.GenerateMessageResponse("failed to credit wallet", nil, err))
 		return
 	} else if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, api.GenerateMessageResponse("failed to credit wallet", nil, err))
