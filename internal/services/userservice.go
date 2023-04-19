@@ -154,6 +154,7 @@ func (service *UserService) Login(request api.LoginRequest) (*api.LoginResponse,
 		return nil, fmt.Errorf("invalid passord for user")
 	}
 
+	// TODO: save permissions in jwt
 	// save userID in jwt token for requests
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"sub": user.ID,

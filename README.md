@@ -17,10 +17,22 @@ POST / api/v1/wallets/{wallet_id}/credit
 POST / api/v1/wallets/{wallet_id}/debit
 ```
 
-### Instructions
-This is taking the assumption that a user can have many wallets but only one wallet can belong to a user at any given point.
-
+## Instructions
+### Setup: 
+- cd `$GOPATH/src/wallet-api` (or wherever the repo was cloned)
 - run `docker-compose up -d` to set up redis and mysql
+- run `go mod tidy`
+- To get the binary file `go build -o $GOPATH/bin/wallet-api`
+- To run tests, with logger:
+```
+cd wallet-api/internal/services
+go test -cover
+```
+- Otherwise from ./wallet-api run `go test ./internal/services -cover` will give simple output
+
+
+### Assumptions
+- This is taking the assumption that a user can have many wallets but only one wallet can belong to a user at any given point.
 - wallet balances (funds) are saved as whole numbers then divised by 100 to get the cents.
 - opted to not stop flow when errors in cache crop up
 - opted to not add transaction, bet, win tables to avoid complexity
