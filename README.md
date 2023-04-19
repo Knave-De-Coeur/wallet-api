@@ -32,7 +32,20 @@ go test -cover
 
 
 ### Assumptions
-- This is taking the assumption that a user can have many wallets but only one wallet can belong to a user at any given point.
-- wallet balances (funds) are saved as whole numbers then divised by 100 to get the cents.
+- Auth endpoint is `/login` taking in the following request body:
+```json
+{
+    "username": "alexm1496",
+    "Password": "pass123"
+}
+```
+- Project is taking the assumption that a user can have many wallets but only one wallet can belong to a user at any given point.
+- Wallet balances (funds) are saved as whole numbers. Response are that divied by 100 to get the cents (emulating euro).
+- Wallets and users have been pre-populated
 - opted to not stop flow when errors in cache crop up
 - opted to not add transaction, bet, win tables to avoid complexity
+- opted to not add permissions in jwt to avoid complexity
+- commented out routes for user CRUD to focus on wallet structure
+- opted not to store tokens in redis to avoid complexity
+- Unit tests were only added to wallet buisness logic covering requirements mentioned for the wallet endpoints
+- Gorm was used so that changing databases won't affect buisness logic.
