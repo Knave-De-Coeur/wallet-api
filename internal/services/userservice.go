@@ -154,8 +154,7 @@ func (service *UserService) Login(request api.LoginRequest) (*api.LoginResponse,
 		return nil, fmt.Errorf("invalid passord for user")
 	}
 
-	// Create a new token object, specifying signing method and the claims
-	// you would like it to contain.
+	// save userID in jwt token for requests
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"sub": user.ID,
 		"exp": time.Now().Add(time.Hour).Unix(),
@@ -170,13 +169,14 @@ func (service *UserService) Login(request api.LoginRequest) (*api.LoginResponse,
 
 	unixCT := service.DBConn.NowFunc()
 
-	fieldsToUpdate := map[string]interface{}{"last_login_time_stamp": unixCT, "updated_at": unixCT}
-
 	// update record with login timestamp
 	res := service.DBConn.
 		Table("users").
 		Where("id = ?", user.ID).
-		Updates(fieldsToUpdate)
+		Updates(map[string]interface{}{
+			"last_login_time_stamp": unixCT,
+			"updated_at":            unixCT,
+		})
 	if res.Error != nil {
 		service.logger.Error("something went wrong updating a player", zap.Error(res.Error))
 		return nil, res.Error

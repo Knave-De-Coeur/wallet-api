@@ -42,25 +42,21 @@ func (handler *WalletHandler) WalletRoutes(r *gin.RouterGroup) {
 }
 
 func (handler *WalletHandler) getWalletBalance(c *gin.Context) {
-	userID, exists := c.Get("user_id")
-	if !exists {
-		c.AbortWithStatusJSON(http.StatusBadRequest, api.GenerateMessageResponse("no user id", nil, fmt.Errorf("no user id saved from token")))
+	userID, _ := c.Get("user_id")
+	uID := userID.(int)
+	if uID == 0 {
+		c.AbortWithStatusJSON(http.StatusBadRequest, api.GenerateMessageResponse("invalid user id", nil, fmt.Errorf("no user id saved from token or cannot be parsed: %d", uID)))
 		return
 	}
 
 	walletID := c.Param("walletid")
-	if walletID == "" {
+	wID, err := strconv.Atoi(walletID)
+	if wID == 0 || err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, api.GenerateMessageResponse("failed to get walletID from url", nil, fmt.Errorf("missing url")))
 		return
 	}
 
-	wID, err := strconv.Atoi(walletID)
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusBadRequest, api.GenerateMessageResponse("failed to get walletID from url", nil, fmt.Errorf("wrong id format")))
-		return
-	}
-
-	user, err := handler.WalletService.Balance(userID.(int), wID)
+	user, err := handler.WalletService.Balance(uID, wID)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, api.GenerateMessageResponse("failed to get user by walletID", nil, err))
 		return
@@ -71,33 +67,45 @@ func (handler *WalletHandler) getWalletBalance(c *gin.Context) {
 }
 
 func (handler *WalletHandler) creditWallet(c *gin.Context) {
+	userID, _ := c.Get("user_id")
+	uID := userID.(int)
+	if uID == 0 {
+		c.AbortWithStatusJSON(http.StatusBadRequest, api.GenerateMessageResponse("invalid user id", nil, fmt.Errorf("no user id saved from token or cannot be parsed: %d", uID)))
+		return
+	}
+
 	walletID := c.Param("walletid")
-	if walletID == "" {
+	wID, err := strconv.Atoi(walletID)
+	if wID == 0 || err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, api.GenerateMessageResponse("failed to get walletID from url", nil, fmt.Errorf("missing url")))
 		return
 	}
 
 	var creditRequest api.CreditRequest
-
-	if err := c.ShouldBindJSON(&creditRequest); err != nil {
+	if err = c.ShouldBindJSON(&creditRequest); err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, api.GenerateMessageResponse("failed to get json body", nil, err))
 		return
 	}
 
-	creditRequest.WalletId, _ = strconv.Atoi(walletID)
-	uid, _ := c.Get("user_id")
-
-	creditRequest.UserId = uid.(int)
+	creditRequest.WalletId = wID
+	creditRequest.UserId = uID
 
 	user, err := handler.WalletService.Credit(&creditRequest)
-	if err != nil && err == gorm.ErrRecordNotFound {
-		c.AbortWithStatusJSON(http.StatusNotFound, api.GenerateMessageResponse("failed to credit wallet", nil, err))
-		return
-	} else if err.Error() == pkg.WRONG_AMOUNT {
-		c.AbortWithStatusJSON(http.StatusBadRequest, api.GenerateMessageResponse("failed to credit wallet", nil, err))
-		return
-	} else if err != nil {
-		c.AbortWithStatusJSON(http.StatusInternalServerError, api.GenerateMessageResponse("failed to credit wallet", nil, err))
+	if err != nil {
+		var code int
+
+		switch err.Error() {
+		case gorm.ErrRecordNotFound.Error():
+			code = http.StatusNotFound
+		case pkg.WrongAmount:
+			code = http.StatusBadRequest
+		case pkg.NotEnoughFunds:
+			code = http.StatusNotAcceptable
+		default:
+			code = http.StatusInternalServerError
+		}
+
+		c.AbortWithStatusJSON(code, api.GenerateMessageResponse("failed to credit wallet", nil, err))
 		return
 	}
 
@@ -106,28 +114,45 @@ func (handler *WalletHandler) creditWallet(c *gin.Context) {
 }
 
 func (handler *WalletHandler) debitWallet(c *gin.Context) {
+	userID, _ := c.Get("user_id")
+	uID := userID.(int)
+	if uID == 0 {
+		c.AbortWithStatusJSON(http.StatusBadRequest, api.GenerateMessageResponse("invalid user id", nil, fmt.Errorf("no user id saved from token or cannot be parsed: %d", uID)))
+		return
+	}
+
 	walletID := c.Param("walletid")
-	if walletID == "" {
+	wID, err := strconv.Atoi(walletID)
+	if wID == 0 || err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, api.GenerateMessageResponse("failed to get walletID from url", nil, fmt.Errorf("missing url")))
 		return
 	}
 
 	var debitRequest api.DebitRequest
-	if err := c.ShouldBindJSON(&debitRequest); err != nil {
-		c.AbortWithStatusJSON(http.StatusBadRequest, api.GenerateMessageResponse("failed to parse json body", nil, err))
+	if err = c.ShouldBindJSON(&debitRequest); err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, api.GenerateMessageResponse("failed to get json body", nil, err))
 		return
 	}
 
-	debitRequest.WalletId, _ = strconv.Atoi(walletID)
-	uid, _ := c.Get("user_id")
+	debitRequest.WalletId = wID
+	debitRequest.UserId = uID
 
-	debitRequest.UserId = uid.(int)
 	user, err := handler.WalletService.Debit(&debitRequest)
-	if err != nil && err == gorm.ErrRecordNotFound {
-		c.AbortWithStatusJSON(http.StatusNotFound, api.GenerateMessageResponse("failed to debit wallet", nil, err))
-		return
-	} else if err != nil {
-		c.AbortWithStatusJSON(http.StatusInternalServerError, api.GenerateMessageResponse("failed to debit wallet", nil, err))
+	if err != nil {
+		var code int
+
+		switch err.Error() {
+		case gorm.ErrRecordNotFound.Error():
+			code = http.StatusNotFound
+		case pkg.WrongAmount:
+			code = http.StatusBadRequest
+		case pkg.NotEnoughFunds:
+			code = http.StatusNotAcceptable
+		default:
+			code = http.StatusInternalServerError
+		}
+
+		c.AbortWithStatusJSON(code, api.GenerateMessageResponse("failed to debit wallet", nil, err))
 		return
 	}
 

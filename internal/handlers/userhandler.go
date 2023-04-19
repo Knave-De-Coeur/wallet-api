@@ -29,11 +29,12 @@ func (handler *UserHandler) UserRoutes(r *gin.RouterGroup) {
 
 	r.POST("login", handler.login)
 
-	r.Group("users").
-		GET("", handler.getUsers).
-		GET("username/:username", handler.getUserByUsername).
-		GET("id/:uID", handler.getUserByID).
-		POST("new", handler.newUser)
+	// TODO add validation for correct token and return 401 accordingly
+	// r.Group("users").
+	// 	GET("", handler.getUsers).
+	// 	GET("username/:username", handler.getUserByUsername).
+	// 	GET("id/:uID", handler.getUserByID).
+	// 	POST("new", handler.newUser)
 
 	return
 }

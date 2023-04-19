@@ -35,9 +35,7 @@ type WalletServices interface {
 	Balance(userID, walletID int) (*api.BalanceResponse, error)
 	Credit(creditReq *api.CreditRequest) (*api.CreditResponse, error)
 	Debit(debitReq *api.DebitRequest) (*api.DebitResponse, error)
-
 	getUserWalletByID(userID, walletID int) (*pkg.Wallet, error)
-
 	updateUserWalletByID(wallet *pkg.Wallet) error
 }
 
@@ -145,7 +143,7 @@ func (w *WalletService) updateUserWalletByID(wallet *pkg.Wallet) error {
 func (w *WalletService) Credit(creditReq *api.CreditRequest) (*api.CreditResponse, error) {
 
 	if creditReq.Amount.IsNegative() || creditReq.Amount.IsZero() {
-		err := errors.New(pkg.WRONG_AMOUNT)
+		err := errors.New(pkg.WrongAmount)
 		w.logger.Error(
 			"attempted to credit invalid amount",
 			zap.Error(err),
@@ -173,9 +171,10 @@ func (w *WalletService) Credit(creditReq *api.CreditRequest) (*api.CreditRespons
 
 	err = w.Cache.Set(context.TODO(), utils.GenerateRedisKey(creditReq.WalletId), newBalance.String(), time.Duration(w.settings.RedisCacheTimeout*int(time.Minute))).Err()
 	if err != nil {
+		// in case of error just delete the cached amount
 		_ = w.Cache.Del(context.TODO(), utils.GenerateRedisKey(creditReq.WalletId))
 		w.logger.Error(
-			"something went wrong updating the cached data, deleting",
+			"something went wrong updating the cached data",
 			zap.Error(err),
 			zap.Any("wallet", wallet),
 		)
@@ -190,11 +189,11 @@ func (w *WalletService) Credit(creditReq *api.CreditRequest) (*api.CreditRespons
 
 func (w *WalletService) Debit(debitReq *api.DebitRequest) (*api.DebitResponse, error) {
 	if debitReq.Amount.IsNegative() || debitReq.Amount.IsZero() {
-		err := errors.New(pkg.WRONG_AMOUNT)
+		err := errors.New(pkg.WrongAmount)
 		w.logger.Error(
 			"attempted to debit invalid amount",
 			zap.Error(err),
-			zap.Any("creditReq", debitReq),
+			zap.Any("debitReq", debitReq),
 		)
 		return nil, err
 	}
@@ -211,7 +210,13 @@ func (w *WalletService) Debit(debitReq *api.DebitRequest) (*api.DebitResponse, e
 	newBalance := walletFunds.Sub(amountToAdd)
 
 	if newBalance.IsNegative() {
-		return nil, errors.New("not enough balance")
+		err = errors.New(pkg.NotEnoughFunds)
+		w.logger.Error(
+			"attempted to debit with insufficient funds",
+			zap.Error(err),
+			zap.Any("debitReq", debitReq),
+		)
+		return nil, err
 	}
 
 	wallet.Funds, _ = strconv.Atoi(newBalance.String())

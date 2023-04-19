@@ -8,10 +8,10 @@ import (
 
 func fallbackConfigs() {
 	viper.SetDefault("DB_CONNECTION_FORMAT", "%s:%s@tcp(%s:3306)/%s?charset=utf8mb4&parseTime=True&loc=Local&multiStatements=true")
-	viper.SetDefault("MYSQL_DB", "wallet")
-	viper.SetDefault("MYSQL_USER", "alex")
-	viper.SetDefault("MYSQL_PASSWORD", "alexsecret")
-	viper.SetDefault("MYSQL_HOST", "localhost")
+	viper.SetDefault("DB", "wallet")
+	viper.SetDefault("DB_USER", "alex")
+	viper.SetDefault("DB_PASSWORD", "alexsecret")
+	viper.SetDefault("DB_HOST", "localhost")
 	viper.SetDefault("PORT", 8080)
 	viper.SetDefault("MAX_CONNECTIONS", 100)
 	viper.SetDefault("MAX_IDLE_CONNECTIONS", 10)
@@ -26,10 +26,10 @@ func fallbackConfigs() {
 // Configurations app configs from env file, env params or fallback configs
 type Configurations struct {
 	DBConnectionFormat string `mapstructure:"DB_CONNECTION_FORMAT"`
-	DBName             string `mapstructure:"MYSQL_DB"`
-	DBUser             string `mapstructure:"MYSQL_USER"`
-	DBPassword         string `mapstructure:"MYSQL_PASSWORD"`
-	Host               string `mapstructure:"MYSQL_HOST"`
+	DBName             string `mapstructure:"DB"`
+	DBUser             string `mapstructure:"DB_USER"`
+	DBPassword         string `mapstructure:"DB_PASSWORD"`
+	Host               string `mapstructure:"DB_HOST"`
 	Port               string `mapstructure:"PORT"`
 	MaxConnections     int    `mapstructure:"MAX_CONNECTIONS"`
 	MaxIdleConnections int    `mapstructure:"MAX_IDLE_CONNECTIONS"`
