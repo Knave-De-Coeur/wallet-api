@@ -9,9 +9,9 @@ services:
     ports:
       - "8080:8080"
     environment:
-      MYSQL_HOST: db
-      MYSQL_USER: wallet
-      MYSQL_PASSWORD: walletsecret
+      DB_HOST: mysql-v8-wallet
+      DB_USER: alex
+      DB_PASSWORD: alexsecret
     volumes:
       - .:/projects/go/src/github.com/knave-de-coeur/wallet-api
     networks:
