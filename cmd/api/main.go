@@ -25,7 +25,7 @@ func main() {
 
 	logger.Info("🚀 connecting to db")
 
-	quizDBConn, err := utils.SetUpDBConnection(
+	dbConnection, err := utils.SetUpDBConnection(
 		config.WalletConfigs.DBUser,
 		config.WalletConfigs.DBPassword,
 		config.WalletConfigs.Host,
@@ -36,15 +36,15 @@ func main() {
 		logger.Fatal("exiting application...", zap.Error(err))
 	}
 
-	logger.Info(fmt.Sprintf("✅ Setup connection to %s db.", quizDBConn.Migrator().CurrentDatabase()))
+	logger.Info(fmt.Sprintf("✅ Setup connection to %s db.", dbConnection.Migrator().CurrentDatabase()))
 
 	logger.Info("🚀 Running migrations")
 
-	if err = utils.SetUpSchema(quizDBConn, logger); err != nil {
+	if err = utils.SetUpSchema(dbConnection, logger); err != nil {
 		logger.Fatal(err.Error())
 	}
 
-	db, err := quizDBConn.DB()
+	db, err := dbConnection.DB()
 	if err != nil {
 		logger.Fatal("something went wrong getting the database conn from gorm", zap.Error(err))
 	}
@@ -53,7 +53,7 @@ func main() {
 		logger.Fatal(err.Error())
 	}
 
-	logger.Info(fmt.Sprintf("✅ Applied migrations to %s db.", quizDBConn.Migrator().CurrentDatabase()))
+	logger.Info(fmt.Sprintf("✅ Applied migrations to %s db.", dbConnection.Migrator().CurrentDatabase()))
 
 	redisClient := redis.NewClient(&redis.Options{
 		Addr:     config.WalletConfigs.RedisAddress,
@@ -61,7 +61,7 @@ func main() {
 		DB:       config.WalletConfigs.RedisDB,
 	})
 
-	routes, err := setUpRoutes(quizDBConn, redisClient, logger)
+	routes, err := setUpRoutes(dbConnection, redisClient, logger)
 	if err != nil {
 		logger.Fatal(err.Error())
 	}
@@ -72,7 +72,7 @@ func main() {
 }
 
 // setUpRoutes adds routes and returns gin engine
-func setUpRoutes(quizDBConn *gorm.DB, rc *redis.Client, logger *zap.Logger) (*gin.Engine, error) {
+func setUpRoutes(dbConn *gorm.DB, rc *redis.Client, logger *zap.Logger) (*gin.Engine, error) {
 
 	portNum, err := strconv.Atoi(config.WalletConfigs.Port)
 	if err != nil {
@@ -80,13 +80,13 @@ func setUpRoutes(quizDBConn *gorm.DB, rc *redis.Client, logger *zap.Logger) (*gi
 		return nil, err
 	}
 
-	userService := services.NewUserService(quizDBConn, rc, logger, services.UserServiceSettings{
+	userService := services.NewUserService(dbConn, rc, logger, services.UserServiceSettings{
 		Port:      portNum,
 		Hostname:  config.WalletConfigs.Host,
 		JWTSecret: config.WalletConfigs.JWTSecret,
 	})
 
-	walletService := services.NewWalletService(quizDBConn, rc, logger, services.WalletServiceSettings{
+	walletService := services.NewWalletService(dbConn, rc, logger, services.WalletServiceSettings{
 		Port:              portNum,
 		Hostname:          config.WalletConfigs.Host,
 		RedisCacheTimeout: config.WalletConfigs.RedisExpiry,
