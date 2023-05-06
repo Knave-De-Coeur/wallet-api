@@ -90,9 +90,10 @@ func SetUpSchema(db *gorm.DB, logger *zap.Logger) (err error) {
 func RunUpMigrations(db *sql.DB, logger *zap.Logger) (err error) {
 
 	driver, _ := migrateMysql.WithInstance(db, &migrateMysql.Config{})
-	m, err := migrate.NewWithDatabaseInstance("file://internal/migrations", "sql", driver)
+	fileLocation := fmt.Sprintf("file://%s", config.WalletConfigs.MigrationsDir)
+	m, err := migrate.NewWithDatabaseInstance(fileLocation, "sql", driver)
 	if err != nil {
-		logger.Error("❌ failed to get migration instance", zap.Error(err))
+		logger.Error("❌ failed to get migration instance", zap.String("fileLocation", fileLocation), zap.Error(err))
 		return err
 	}
 

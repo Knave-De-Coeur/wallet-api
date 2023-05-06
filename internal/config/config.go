@@ -12,6 +12,7 @@ func fallbackConfigs() {
 	viper.SetDefault("DB_USER", "alex")
 	viper.SetDefault("DB_PASSWORD", "alexsecret")
 	viper.SetDefault("DB_HOST", "localhost")
+	viper.SetDefault("MIGRATIONS_DIR", "/internal/migrations")
 	viper.SetDefault("PORT", 8080)
 	viper.SetDefault("MAX_CONNECTIONS", 100)
 	viper.SetDefault("MAX_IDLE_CONNECTIONS", 10)
@@ -30,6 +31,7 @@ type Configurations struct {
 	DBUser             string `mapstructure:"DB_USER"`
 	DBPassword         string `mapstructure:"DB_PASSWORD"`
 	Host               string `mapstructure:"DB_HOST"`
+	MigrationsDir      string `mapstructure:"MIGRATIONS_DIR"`
 	Port               string `mapstructure:"PORT"`
 	MaxConnections     int    `mapstructure:"MAX_CONNECTIONS"`
 	MaxIdleConnections int    `mapstructure:"MAX_IDLE_CONNECTIONS"`
