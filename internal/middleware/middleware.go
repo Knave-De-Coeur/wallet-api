@@ -10,6 +10,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+
 	"wallet-api/internal/api"
 	"wallet-api/internal/pkg"
 )

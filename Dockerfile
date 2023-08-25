@@ -1,7 +1,7 @@
 ############################
 # STEP 1 build executable binary
 ############################
-FROM golang:1.20.3-alpine3.17 AS builder
+FROM golang:1.21.0-alpine3.18 AS builder
 
 # Install git.
 # Git is required for fetching the dependencies.
